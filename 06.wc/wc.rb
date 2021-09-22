@@ -3,50 +3,48 @@
 
 require 'optparse'
 
-# 下記の記事を参考にした
+# 下記の記事で「標準入力の方法と行数・単語数・バイトサイズの数え方」を参考にした
 # https://k-koh.hatenablog.com/entry/2019/12/20/165521
 def main
   option = CommandLineOption.new
-  pathnames = option.extras
+  path_names = option.extras
 
-  inputs = get_input(pathnames)
-  results = word_count(inputs)
-  puts result_export(results, option)
+  file_datas = read_files(path_names)
+  count_datas = generate_count_datas(file_datas)
+  puts format_table(count_datas, option)
 end
 
-def get_input(pathnames)
-  inputs = []
-  if pathnames.size.zero?
-    inputs << ['', $stdin.read]
+def read_files(path_names)
+  if path_names.empty?
+    [['', $stdin.read]]
   else
-    pathnames.each { |p| inputs << [p, File.open(p).read] }
+    path_names.map { |path_name| [path_name, File.read(path_name)] }
   end
-
-  inputs
 end
 
-def word_count(inputs)
-  results = []
-  inputs.each do |pathname, input|
-    lines = count_lines(input)
-    words = count_words(input)
-    bytes = count_bytes(input)
-    filename = File.basename(pathname)
-    results << [lines, words, bytes, filename]
+def generate_count_datas(file_datas)
+  line_counts = []
+  word_counts = []
+  byte_counts = []
+  file_names = []
+  count_datas = file_datas.map do |path_name, text|
+    line_counts << count_lines(text)
+    word_counts << count_words(text)
+    byte_counts << count_bytes(text)
+    file_names << File.basename(path_name)
+    [line_counts.last, word_counts.last, byte_counts.last, file_names.last]
   end
-
-  results << count_total(inputs) if inputs.size > 1
-  results
+  if count_datas.size > 1
+    count_datas << [line_counts.sum, word_counts.sum, byte_counts.sum, 'total']
+  else
+    count_datas
+  end
 end
 
 def count_lines(str)
   str.count("\n")
 end
 
-# rubocop対応で、rejectの代わりにdelete_ifを使用
-# C: Performance/Count: Use count instead of reject...size.
-#  str.split(/\s/).reject(&:empty?).size
-#                  ^^^^^^^^^^^^^^^^^^^^^
 def count_words(str)
   str.split(/\s/).delete_if(&:empty?).size
 end
@@ -55,73 +53,37 @@ def count_bytes(str)
   str.bytesize
 end
 
-def count_total(inputs)
-  lines = []
-  words = []
-  bytes = []
-
-  # ブロックパラメーターは、使わない方に'_'を使用
-  # W: [Correctable] Lint/UnusedBlockArgument: Unused block argument - pathname.
-  # If it's necessary, use _ or _pathname as an argument name to indicate that
-  # it won't be used.
-  #  inputs.each do |pathname, input|
-  #                  ^^^^^^^^
-  # ブロックパラメーターについては、下記の記事を参考とした
-  # https://qiita.com/jnchito/items/3cce0c057f54afa29d0a
-  inputs.each do |_, input|
-    lines << count_lines(input)
-    words << count_words(input)
-    bytes << count_bytes(input)
-  end
-
-  [lines.sum, words.sum, bytes.sum, 'total']
+def format_table(count_datas, option)
+  count_datas.map do |line_count, word_count, byte_size, filename|
+    cols = [format_count(line_count)]
+    if option.optsize.zero?
+      cols << format_count(word_count)
+      cols << format_count(byte_size)
+    end
+    cols << " #{filename}"
+    cols.join
+  end.join("\n")
 end
 
-def result_export(results, option)
-  # -w、-cオプションを追加したいときは、-lオプションのif条件と同様に変更する
-  exports = []
-  results.each do |lines, words, bytes, filename|
-    exports << str_formatter(lines) if option.has?(:l) || option.optsize.zero?
-    exports << str_formatter(words) if option.optsize.zero?
-    exports << str_formatter(bytes) if option.optsize.zero?
-    exports << " #{filename}\n"
-  end
-
-  exports.join
-end
-
-def str_formatter(count)
+def format_count(count)
   count.to_s.rjust(8)
 end
 
-# 下記の記事を参考にした
+# 下記の記事でOptionParserの使い方とクラス化を参考にした
 # https://maku77.github.io/ruby/io/optparse.html
 class CommandLineOption
-  # インスタンス化と同時にコマンドライン引数をパース
   def initialize
     @options = {}
-    # -w、-cオプションを追加したい時は、-lオプションの行を流用して追加する
     OptionParser.new do |o|
       o.on('-l') { |v| @options[:l] = v }
       o.parse!(ARGV)
     end
   end
 
-  # オプション数を取得
   def optsize
     @options.size
   end
 
-  # オプションが指定されたかどうか
-  def has?(name)
-    @options.include?(name)
-  end
-
-  # オプションパース後に残った部分を取得
-  # rubocop対応で、get_を削除
-  # C: Naming/AccessorMethodName: Do not prefix reader method names with get_.
-  # def get_extras
-  #     ^^^^^^^^^^
   def extras
     ARGV
   end
