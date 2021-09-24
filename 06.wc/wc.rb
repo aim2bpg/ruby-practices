@@ -9,12 +9,12 @@ def main
   option = CommandLineOption.new
   path_names = option.extras
 
-  file_data_list = store_file_data_list(path_names)
+  file_data_list = generate_file_data_list(path_names)
   count_data_list = generate_count_data_list(file_data_list)
   puts format_table(count_data_list, option)
 end
 
-def store_file_data_list(path_names)
+def generate_file_data_list(path_names)
   if path_names.empty?
     [['', $stdin.read]]
   else
