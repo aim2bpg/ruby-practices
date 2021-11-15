@@ -34,6 +34,8 @@ class Frame
     @shot_1st == 10
   end
 
+  private
+
   def spare?
     (@shot_1st + @shot_2nd) == 10
   end
