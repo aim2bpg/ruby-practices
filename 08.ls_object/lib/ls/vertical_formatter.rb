@@ -1,7 +1,7 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 require 'etc'
+require_relative 'formatter'
 
 FTYPE_TABLE = {
   '04' => 'd',
@@ -20,11 +20,23 @@ MODE_TABLE = {
   '7' => 'rwx'
 }.freeze
 
-class LsVerticalFormatter
+class LsVerticalFormatter < LsFormatter
   def initialize(file_paths)
     @file_paths = file_paths
     @nested_row_data = []
   end
+
+  def setup
+    build_file_detail
+  end
+
+  def run
+    convert_file_detail
+    align_file_detail
+    render_file_detail
+  end
+
+  private
 
   def build_file_detail
     file_details = %w[mode nlink uid gid size mtime]
@@ -45,35 +57,6 @@ class LsVerticalFormatter
     @nested_row_data
   end
 
-  def align_file_detail
-    nested_row_data = @nested_row_data.transpose.map do |row_data|
-      max_length = find_max_length(row_data)
-      if row_data.first.is_a?(Integer) || kind_of_time?(row_data.first)
-        row_data.map { |data| data.to_s.rjust(max_length) }
-      else
-        row_data.map { |data| data.to_s.ljust(max_length + 1) }
-      end
-    end.transpose
-    @nested_row_data = nested_row_data
-  end
-
-  def render_file_detail
-    body = render_row_data
-    total = "total #{sum_block_size}"
-    [total, *body].join("\n")
-  end
-
-  def render_row_data
-    @nested_row_data.map { |row_data| row_data.join(' ').rstrip }.join("\n")
-  end
-
-  private
-
-  def convert_file_name(file_path)
-    file_name = File.basename(file_path)
-    File.symlink?(file_path) ? "#{file_name} -> #{File.readlink(file_path)}" : file_name
-  end
-
   def convert_file_type(mode)
     mode.to_s(8).rjust(6, '0')[0..1].sub(/.{2}/, FTYPE_TABLE)
   end
@@ -86,12 +69,31 @@ class LsVerticalFormatter
     mtime > (Time.now - 24 * 60 * 60 * 183) ? mtime.strftime('%_2m %_2d %H:%M') : mtime.strftime('%_2m %_2d  %Y')
   end
 
-  def find_max_length(targets)
-    targets.map { |data| data.to_s.length }.max
+  def convert_file_name(file_path)
+    file_name = File.basename(file_path)
+    File.symlink?(file_path) ? "#{file_name} -> #{File.readlink(file_path)}" : file_name
+  end
+
+  def align_file_detail
+    nested_row_data = @nested_row_data.transpose.map do |row_data|
+      max_length = find_max_length(row_data)
+      if row_data.first.is_a?(Integer) || kind_of_time?(row_data.first)
+        row_data.map { |data| data.to_s.rjust(max_length) }
+      else
+        row_data.map { |data| data.to_s.ljust(max_length + 1) }
+      end
+    end.transpose
+    @nested_row_data = nested_row_data
   end
 
   def kind_of_time?(target)
     target =~ /\d{1,2} {1,2}\d{1,2} .\d{1}.\d{2}/
+  end
+
+  def render_file_detail
+    body = render_row_data(@nested_row_data)
+    total = "total #{sum_block_size}"
+    [total, *body].join("\n")
   end
 
   def sum_block_size

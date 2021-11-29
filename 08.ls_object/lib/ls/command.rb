@@ -3,6 +3,7 @@
 
 require 'io/console'
 require_relative 'command_option'
+require_relative 'formatter'
 require_relative 'vertical_formatter'
 require_relative 'horizontal_formatter'
 
@@ -20,15 +21,12 @@ class LsCommand
     long_format ||= opt.has?(:l)
     if long_format
       ls_vf = LsVerticalFormatter.new(file_paths)
-      ls_vf.build_file_detail
-      ls_vf.convert_file_detail
-      ls_vf.align_file_detail
-      ls_vf.render_file_detail
+      ls_vf.setup
+      ls_vf.run
     else
       ls_hf = LsHorizontalFormatter.new(file_paths, width)
-      ls_hf.build_file_name
-      ls_hf.format_file_name
-      ls_hf.render_row_data
+      ls_hf.setup
+      ls_hf.run
     end
   end
 

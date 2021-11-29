@@ -1,12 +1,25 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
-class LsHorizontalFormatter < LsVerticalFormatter
+require_relative 'formatter'
+
+class LsHorizontalFormatter < LsFormatter
   def initialize(file_paths, width)
-    super(file_paths)
+    @file_paths = file_paths
     @file_names = []
     @width = width
+    @nested_row_data = []
   end
+
+  def setup
+    build_file_name
+  end
+
+  def run
+    format_file_name
+    render_row_data(@nested_row_data)
+  end
+
+  private
 
   def build_file_name
     @file_names = @file_paths.map do |file_path|
@@ -22,8 +35,6 @@ class LsHorizontalFormatter < LsVerticalFormatter
     segmented_file_name = segment_file_name(aligned_file_names, row_count)
     safe_transpose(segmented_file_name)
   end
-
-  private
 
   def align_file_name(max_file_name_length)
     @file_names.map do |file_name|
