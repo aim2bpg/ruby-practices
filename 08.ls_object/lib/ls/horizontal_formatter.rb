@@ -7,16 +7,11 @@ class LsHorizontalFormatter < LsFormatter
     @file_paths = file_paths
     @file_names = []
     @width = width
-    @nested_row_data = []
-  end
-
-  def setup
     build_file_name
   end
 
   def run
     format_file_name
-    render_row_data(@nested_row_data)
   end
 
   private
@@ -32,8 +27,9 @@ class LsHorizontalFormatter < LsFormatter
     col_count = @width / (max_file_name_length + 1)
     row_count = col_count.zero? ? @file_names.count : (@file_names.count.to_f / col_count).ceil
     aligned_file_names = align_file_name(max_file_name_length)
-    segmented_file_name = segment_file_name(aligned_file_names, row_count)
-    safe_transpose(segmented_file_name)
+    segmented_file_names = segment_file_name(aligned_file_names, row_count)
+    transposed_file_names = safe_transpose(segmented_file_names)
+    render_row_data(transposed_file_names)
   end
 
   def align_file_name(max_file_name_length)
@@ -47,6 +43,6 @@ class LsHorizontalFormatter < LsFormatter
   end
 
   def safe_transpose(segmented_file_name)
-    @nested_row_data = segmented_file_name[0].zip(*segmented_file_name[1..-1])
+    segmented_file_name[0].zip(*segmented_file_name[1..-1])
   end
 end
