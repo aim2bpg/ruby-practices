@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 require 'io/console'
@@ -19,11 +18,9 @@ class LsCommand
 
     long_format ||= opt.has?(:l)
     if long_format
-      ls_vf = LsVerticalFormatter.new(file_paths)
-      ls_vf.run
+      LsVerticalFormatter.run(file_paths)
     else
-      ls_hf = LsHorizontalFormatter.new(file_paths, width)
-      ls_hf.run
+      LsHorizontalFormatter.run(file_paths, width)
     end
   end
 
