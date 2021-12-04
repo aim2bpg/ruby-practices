@@ -5,32 +5,19 @@ require_relative 'file_state'
 
 class LsVerticalFormatter < LsFormatter
   def self.run(file_paths)
-    @file_paths = file_paths
-    @nested_row_data = []
-    build_file_state
+    @block_total = file_paths.map { |file_path| File.lstat(file_path).send 'blocks' }.sum
+    @file_states = file_paths.map { |file_path| FileState.build(file_path) }
     format_file_state
   end
 
-  def self.build_file_state
-    @nested_row_data = @file_paths.map do |file_path|
-      file_states = FileState.new
-      file_states.build(file_path)
-      file_states.convert
-    end
-  end
-
   def self.format_file_state
-    total = "total #{sum_block_size}"
+    total = "total #{@block_total}"
     body = render_row_data(align_file_state)
     [total, *body].join("\n")
   end
 
-  def self.sum_block_size
-    @file_paths.map { |file_name| File.lstat(file_name).send 'blocks' }.sum
-  end
-
   def self.align_file_state
-    @nested_row_data.transpose.map do |row_data|
+    @file_states.transpose.map do |row_data|
       max_length = find_max_length(row_data)
       if row_data.first.is_a?(Integer) || kind_of_time?(row_data.first)
         row_data.map { |data| data.to_s.rjust(max_length) }

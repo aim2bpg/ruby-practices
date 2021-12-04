@@ -20,49 +20,43 @@ MODE_TABLE = {
 }.freeze
 
 class FileState
-  attr_reader :row_data
+  attr_reader :stat
 
-  def initialize
-    @row_data = %w[mode nlink uid gid size mtime]
+  def self.build(file_path)
+    @states = %w[mode nlink uid gid size mtime].map { |item| File.lstat(file_path).send item } << file_path
+    convert
   end
 
-  def build(file_path)
-    stat = File.lstat(file_path)
-    @row_data = @row_data.map { |item| stat.send item } << file_path
-  end
-
-  def convert
-    @row_data = [
-      "#{convert_file_type}#{convert_file_mode}",
-      @row_data[1],
-      Etc.getpwuid(@row_data[2]).name,
-      Etc.getgrgid(@row_data[3]).name,
-      @row_data[4],
-      convert_modify_time,
-      convert_file_name
+  def self.convert
+    @states = [
+      "#{file_type}#{file_mode}",
+      @states[1],
+      Etc.getpwuid(@states[2]).name,
+      Etc.getgrgid(@states[3]).name,
+      @states[4],
+      modify_time,
+      file_name
     ]
   end
 
-  private
-
-  def convert_file_type
-    @row_data[0].to_s(8).rjust(6, '0')[0..1].sub(/.{2}/, FTYPE_TABLE)
+  def self.file_type
+    @states[0].to_s(8).rjust(6, '0')[0..1].sub(/.{2}/, FTYPE_TABLE)
   end
 
-  def convert_file_mode
-    @row_data[0].to_s(8)[-3..-1].gsub(/./, MODE_TABLE)
+  def self.file_mode
+    @states[0].to_s(8)[-3..-1].gsub(/./, MODE_TABLE)
   end
 
-  def convert_modify_time
-    if @row_data[5] > (Time.now - 24 * 60 * 60 * 183)
-      @row_data[5].strftime('%_2m %_2d %H:%M')
+  def self.modify_time
+    if @states[5] > (Time.now - 24 * 60 * 60 * 183)
+      @states[5].strftime('%_2m %_2d %H:%M')
     else
-      @row_data[5].strftime('%_2m %_2d  %Y')
+      @states[5].strftime('%_2m %_2d  %Y')
     end
   end
 
-  def convert_file_name
-    file_name = File.basename(@row_data[6])
-    File.symlink?(@row_data[6]) ? "#{file_name} -> #{File.readlink(@row_data[6])}" : file_name
+  def self.file_name
+    file_name = File.basename(@states[6])
+    File.symlink?(@states[6]) ? "#{file_name} -> #{File.readlink(@states[6])}" : file_name
   end
 end

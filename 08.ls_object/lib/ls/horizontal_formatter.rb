@@ -4,17 +4,9 @@ require_relative 'formatter'
 
 class LsHorizontalFormatter < LsFormatter
   def self.run(file_paths, width)
-    @file_paths = file_paths
-    @file_names = []
+    @file_names = file_paths.map { |file_path| File.basename(file_path) }
     @width = width
-    build_file_name
     format_file_name
-  end
-
-  def self.build_file_name
-    @file_names = @file_paths.map do |file_path|
-      File.basename(file_path)
-    end
   end
 
   def self.format_file_name

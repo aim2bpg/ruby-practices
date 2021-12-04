@@ -10,7 +10,6 @@ class LsCommand
 
   def self.run(pathname: '', dot_match: false, reverse: false, long_format: false, width: CURRENT_WIDTH)
     opt = LsCommandOption.new
-
     pathname = opt.fetch_pathname if pathname.empty?
     dot_match ||= opt.has?(:a)
     reverse ||= opt.has?(:r)
