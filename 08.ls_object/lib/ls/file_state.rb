@@ -20,8 +20,6 @@ MODE_TABLE = {
 }.freeze
 
 class FileState
-  attr_reader :stat
-
   def self.build(file_path)
     @states = %w[mode nlink uid gid size mtime].map { |item| File.lstat(file_path).send item } << file_path
     convert
