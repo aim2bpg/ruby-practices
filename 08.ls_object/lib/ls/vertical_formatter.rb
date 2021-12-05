@@ -6,7 +6,7 @@ require_relative 'file_state'
 class LsVerticalFormatter < LsFormatter
   def self.run(file_paths)
     @block_total = file_paths.map { |file_path| File.lstat(file_path).send 'blocks' }.sum
-    @file_states = file_paths.map { |file_path| FileState.build(file_path) }
+    @file_states = file_paths.map { |file_path| FileState.new(file_path) }
     format_file_state
   end
 
@@ -17,7 +17,8 @@ class LsVerticalFormatter < LsFormatter
   end
 
   def self.align_file_state
-    @file_states.transpose.map do |row_data|
+    converts = @file_states.map(&:convert)
+    converts.transpose.map do |row_data|
       max_length = find_max_length(row_data)
       if row_data.first.is_a?(Integer) || kind_of_time?(row_data.first)
         row_data.map { |data| data.to_s.rjust(max_length) }
